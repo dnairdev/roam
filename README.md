@@ -15,7 +15,7 @@ Turn saved ideas into scheduled plans — solo or with friends — using Google 
 
 - **Next.js 14** (App Router) + TypeScript
 - **Tailwind CSS** for styling
-- **Prisma** + SQLite for local database
+- **Prisma** + PostgreSQL
 - **NextAuth** for Google OAuth
 - **Google Calendar API** (FreeBusy) for availability
 
@@ -25,6 +25,7 @@ Turn saved ideas into scheduled plans — solo or with friends — using Google 
 
 - Node.js 18+
 - A Google Cloud project with OAuth 2.0 credentials
+- A PostgreSQL database (Neon, Supabase, Railway, or Vercel Postgres)
 
 ### 2. Google Cloud Setup
 
@@ -51,7 +52,7 @@ cp .env.example .env
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | SQLite path (default: `file:./dev.db`) |
+| `DATABASE_URL` | PostgreSQL connection string |
 | `NEXTAUTH_URL` | App URL (default: `http://localhost:3000`) |
 | `NEXTAUTH_SECRET` | Random secret for JWT signing (`openssl rand -base64 32`) |
 | `GOOGLE_CLIENT_ID` | From Google Cloud Console |
@@ -68,6 +69,26 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## Deploy To Vercel
+
+1. Push this repo to GitHub.
+2. In Vercel, click **Add New Project** and import `dnairdev/roam`.
+3. Create/attach a Postgres database (Neon/Supabase/Vercel Postgres) and copy its `DATABASE_URL`.
+4. In Vercel Project Settings -> Environment Variables, set:
+   - `DATABASE_URL`
+   - `NEXTAUTH_URL` (your Vercel production URL, e.g. `https://your-app.vercel.app`)
+   - `NEXTAUTH_SECRET`
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `GOOGLE_MAPS_API_KEY`
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+5. Deploy (the build runs `prisma db push` before `next build`).
+6. Update Google Cloud OAuth credentials:
+   - Authorized JavaScript origins: `https://your-app.vercel.app`
+   - Authorized redirect URI: `https://your-app.vercel.app/api/auth/callback/google`
+7. Update Maps key HTTP referrer restriction:
+   - `https://your-app.vercel.app/*`
 
 ## File Structure
 
