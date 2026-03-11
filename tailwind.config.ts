@@ -5,13 +5,10 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: [
-          "Inter",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "sans-serif",
-        ],
+        sans:  ["DM Mono", "monospace"],
+        mono:  ["DM Mono", "monospace"],
+        serif: ["DM Serif Display", "serif"],
+        lora:  ["Lora", "serif"],
       },
     },
   },

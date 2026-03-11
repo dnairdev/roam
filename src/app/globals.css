@@ -1,29 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=Lora:ital,wght@1,400;1,500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@keyframes fu {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 @layer base {
   body {
-    @apply bg-white text-gray-900 antialiased;
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-      sans-serif;
+    background-color: #F5F3FA;
+    color: #1E1A2E;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'DM Mono', monospace;
   }
 
-  /* Thin scrollbars */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+  ::-webkit-scrollbar { width: 0; height: 0; }
+}
+
+@layer utilities {
+  .anim { animation: fu 0.35s ease-out both; }
+  .d1   { animation-delay: 0.05s; }
+  .d2   { animation-delay: 0.10s; }
+  .d3   { animation-delay: 0.15s; }
+  .d4   { animation-delay: 0.20s; }
+  .d5   { animation-delay: 0.25s; }
+  .d6   { animation-delay: 0.30s; }
+
+  .dot-grid {
+    background-image: radial-gradient(circle, rgba(171,161,198,0.30) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
 }

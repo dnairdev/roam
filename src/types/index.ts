@@ -8,6 +8,8 @@ export interface SlotSuggestion {
   end: string;
   score: number;
   reason: string;
+  yelpAvailable?: boolean;
+  yelpUrl?: string;
 }
 
 export interface SuggestSlotsRequest {

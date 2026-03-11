@@ -16,7 +16,15 @@ export async function POST(req: NextRequest) {
   });
   const accessToken = account?.access_token;
   const body = await req.json();
-  const { duration = 60, preference = "any", friendEmails = [], excludeIdeaId = "" } = body;
+  const {
+    duration = 60,
+    preference = "any",
+    friendEmails = [],
+    excludeIdeaId = "",
+    openingPeriods = [],
+    yelpReservationUrl = null as string | null,
+    yelpSupportsReservations = false,
+  } = body;
 
   // Fetch user's busy blocks (real Google Calendar data)
   let userBusy = accessToken ? await getUserBusyBlocks(accessToken) : [];
@@ -51,7 +59,16 @@ export async function POST(req: NextRequest) {
     )
   );
 
-  const slots = suggestSlots({ userBusy, friendsBusy, duration, preference });
+  let slots = suggestSlots({ userBusy, friendsBusy, duration, preference, openingPeriods });
+
+  // Annotate slots with Yelp reservation info if available
+  if (yelpSupportsReservations && yelpReservationUrl) {
+    slots = slots.map((slot) => ({
+      ...slot,
+      yelpAvailable: true,
+      yelpUrl: yelpReservationUrl,
+    }));
+  }
 
   return NextResponse.json({ slots });
 }

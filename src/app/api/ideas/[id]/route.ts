@@ -48,6 +48,11 @@ export async function PUT(
       ...(body.category !== undefined && { category: body.category }),
       ...(body.lat !== undefined && { lat: body.lat }),
       ...(body.lng !== undefined && { lng: body.lng }),
+      ...(body.covers !== undefined && { covers: body.covers }),
+      ...(body.calendarEventId !== undefined && { calendarEventId: body.calendarEventId }),
+      ...(body.rating !== undefined && { rating: body.rating }),
+      ...(body.invitees !== undefined && { invitees: body.invitees }),
+      ...(body.taskNotes !== undefined && { taskNotes: body.taskNotes }),
     },
   });
 

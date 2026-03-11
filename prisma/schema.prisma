@@ -3,7 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  // ⚠️  Change to "postgresql" before deploying to Vercel
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -42,6 +43,8 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  phone         String    @default("")
+  onboarded     Boolean   @default(false)
   accounts      Account[]
   sessions      Session[]
   buckets       Bucket[]
@@ -54,6 +57,17 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model OtpToken {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
 }
 
 // ── App models ───────────────────────────────────────────────
@@ -87,6 +101,11 @@ model Idea {
   category         String   @default("")
   lat              Float?
   lng              Float?
+  covers           Int      @default(2)
+  rating           Int      @default(0)
+  calendarEventId  String   @default("")
+  invitees         String   @default("[]")
+  taskNotes        String   @default("")
   bucketId         String?
   bucket           Bucket?  @relation(fields: [bucketId], references: [id], onDelete: SetNull)
   userId           String
