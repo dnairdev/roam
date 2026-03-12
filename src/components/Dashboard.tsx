@@ -243,7 +243,7 @@ export default function Dashboard() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ideaId: id,
-              title,
+              title: refinedTitle,
               startTime: suggestedTime,
               durationMinutes: estimatedMinutes,
               location: placeAddress || placeName,

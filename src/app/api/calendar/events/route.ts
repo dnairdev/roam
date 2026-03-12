@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { google } from "googleapis";
+import { buildCalendarEventTitle, buildGoogleCalendarLink } from "@/lib/demoMvp";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -14,13 +15,6 @@ export async function POST(req: NextRequest) {
     where: { userId, provider: "google" },
   });
 
-  if (!account?.access_token) {
-    return NextResponse.json(
-      { error: "No Google account connected" },
-      { status: 400 }
-    );
-  }
-
   const body = await req.json();
   const {
     ideaId,
@@ -31,11 +25,62 @@ export async function POST(req: NextRequest) {
     notes = "",
   } = body;
 
-  if (!startTime || !title) {
+  const idea = ideaId
+    ? await prisma.idea.findFirst({
+        where: { id: ideaId, userId },
+        select: {
+          title: true,
+          placeName: true,
+          invitees: true,
+        },
+      })
+    : null;
+
+  const invitees = (() => {
+    try {
+      return JSON.parse(idea?.invitees || "[]");
+    } catch {
+      return [];
+    }
+  })();
+
+  const eventTitle = buildCalendarEventTitle({
+    title: idea?.title || title,
+    placeName: idea?.placeName || "",
+    invitees: Array.isArray(invitees) ? invitees : [],
+  });
+
+  if (!startTime || !eventTitle) {
     return NextResponse.json(
       { error: "Missing title or startTime" },
       { status: 400 }
     );
+  }
+
+  const fallbackEventLink = buildGoogleCalendarLink({
+    title: eventTitle,
+    startTime,
+    durationMinutes,
+    location,
+    notes: notes
+      ? `${notes}\n\nScheduled via Roam`
+      : "Scheduled via Roam",
+  });
+
+  if (!account?.access_token) {
+    const fallbackEventId = `draft-${ideaId || Date.now()}`;
+    if (ideaId) {
+      await prisma.idea.updateMany({
+        where: { id: ideaId, userId },
+        data: { calendarEventId: fallbackEventId },
+      });
+    }
+
+    return NextResponse.json({
+      eventId: fallbackEventId,
+      eventLink: fallbackEventLink,
+      fallback: true,
+    });
   }
 
   const oauth2Client = new google.auth.OAuth2(
@@ -56,7 +101,7 @@ export async function POST(req: NextRequest) {
     const event = await calendar.events.insert({
       calendarId: "primary",
       requestBody: {
-        summary: title,
+        summary: eventTitle,
         location: location || undefined,
         description: notes
           ? `${notes}\n\nScheduled via Roam`
@@ -80,9 +125,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ eventId, eventLink });
   } catch (err: any) {
     console.error("Calendar event creation failed:", err?.message);
-    return NextResponse.json(
-      { error: "Failed to create calendar event" },
-      { status: 500 }
-    );
+    const fallbackEventId = `draft-${ideaId || Date.now()}`;
+    if (ideaId) {
+      await prisma.idea.updateMany({
+        where: { id: ideaId, userId },
+        data: { calendarEventId: fallbackEventId },
+      });
+    }
+
+    return NextResponse.json({
+      eventId: fallbackEventId,
+      eventLink: fallbackEventLink,
+      fallback: true,
+    });
   }
 }

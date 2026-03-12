@@ -366,6 +366,37 @@ function formatCalendarDate(date: Date): string {
   return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
 
+function formatInviteeLabel(invitees: string[]): string {
+  if (invitees.length === 0) return "";
+  if (invitees.length === 1) return invitees[0];
+  if (invitees.length === 2) return `${invitees[0]} and ${invitees[1]}`;
+  return `${invitees.slice(0, -1).join(", ")}, and ${invitees[invitees.length - 1]}`;
+}
+
+export function buildCalendarEventTitle(input: {
+  title?: string;
+  placeName?: string;
+  invitees?: string[];
+}): string {
+  const baseTitle = normalizeSpaces(input.placeName || input.title || "") || "Plans";
+  const invitees = (input.invitees || [])
+    .map((invitee) => normalizeSpaces(invitee))
+    .filter(Boolean);
+
+  if (invitees.length === 0) return baseTitle;
+
+  const lowerBaseTitle = baseTitle.toLowerCase();
+  const alreadyIncludesInvitees = invitees.every((invitee) =>
+    lowerBaseTitle.includes(invitee.toLowerCase())
+  );
+
+  if (/\bwith\b/i.test(baseTitle) || alreadyIncludesInvitees) {
+    return baseTitle;
+  }
+
+  return `${baseTitle} with ${formatInviteeLabel(invitees)}`;
+}
+
 export function buildGoogleCalendarLink(input: {
   title: string;
   startTime: string;
