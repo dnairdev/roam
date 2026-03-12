@@ -2,14 +2,13 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import dynamic from "next/dynamic";
+
 import TopBar from "./TopBar";
 import IdeaCard from "./IdeaCard";
 import PlansView from "./PlansView";
 import InboxView, { Notification } from "./InboxView";
 import ProfileView from "./ProfileView";
 
-const MapView = dynamic(() => import("./MapView"), { ssr: false });
 
 const DEMO_CONTACTS = ["Tyler", "Diya", "Mia", "Stanley", "Daniel", "Arleen"];
 
@@ -127,7 +126,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<Tab>("home");
-  const [mapView, setMapView] = useState(false);
+
   const [inviteToast, setInviteToast] = useState<string | null>(null);
   const [mentionDropdown, setMentionDropdown] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -380,25 +379,7 @@ export default function Dashboard() {
 
           {activeTab === "home" && (
             <>
-              {ideas.length > 0 && (
-                <div className="anim" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
-                  <div style={{ display: "flex", background: "rgba(255,255,255,0.8)", border: "1px solid rgba(171,161,198,0.2)", borderRadius: 10, overflow: "hidden" }}>
-                    {(["list", "map"] as const).map((v) => (
-                      <button key={v} onClick={() => setMapView(v === "map")} style={{ padding: "6px 14px", fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "1.5px", textTransform: "uppercase", background: (mapView ? "map" : "list") === v ? "linear-gradient(135deg, #7B6FA8, #4A4070)" : "transparent", color: (mapView ? "map" : "list") === v ? "#fff" : "#A89FC0", border: "none", cursor: "pointer" }}>
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {mapView && ideas.length > 0 && (
-                <div className="anim" style={{ height: 400, borderRadius: 16, overflow: "hidden", border: "1px solid rgba(171,161,198,0.2)", boxShadow: "0 2px 18px rgba(74,64,112,0.07)", marginBottom: 14 }}>
-                  <MapView ideas={ideas} />
-                </div>
-              )}
-
-              {!mapView && (
+              {true && (
                 <>
                   {nextUpIdea && (
                     <div className="anim d1" style={{ background: "linear-gradient(135deg, #7B6FA8, #4A4070)", borderRadius: 18, padding: "20px 20px 18px", marginBottom: 16, boxShadow: "0 4px 24px rgba(74,64,112,0.22)", cursor: "pointer" }} onClick={() => setActiveTab("plans")}>
