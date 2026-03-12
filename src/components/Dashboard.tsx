@@ -35,6 +35,7 @@ interface Idea {
   rating: number;
   calendarEventId: string;
   invitees: string;
+  acceptedBy: string;
   taskNotes: string;
   createdAt: string;
   updatedAt: string;
@@ -72,6 +73,11 @@ function generateNotifications(ideas: Idea[]): Notification[] {
   const now = new Date();
   const result: Notification[] = [];
   for (const idea of ideas) {
+    let invitees: string[] = [];
+    let acceptedBy: string[] = [];
+    try { invitees = JSON.parse(idea.invitees || "[]"); } catch { invitees = []; }
+    try { acceptedBy = JSON.parse(idea.acceptedBy || "[]"); } catch { acceptedBy = []; }
+
     if (!idea.suggestedTime) {
       if (idea.placeName) {
         result.push({ id: `suggest-${idea.id}`, type: "suggestion", icon: "✨", text: `suggestion ready: ${idea.title}`, sub: idea.placeName, read: true, time: idea.createdAt });
@@ -84,6 +90,30 @@ function generateNotifications(ideas: Idea[]): Notification[] {
       result.push({ id: `cal-${idea.id}`, type: "confirmed", icon: "✓", text: `${idea.title} is on your calendar`, sub: formatSlotLabel(idea.suggestedTime), read: diffHours > 48, time: idea.suggestedTime });
     } else if (diffHours >= 0 && diffHours <= 48) {
       result.push({ id: `remind-${idea.id}`, type: "reminder", icon: "◷", text: `upcoming: ${idea.title}`, sub: `${formatSlotLabel(idea.suggestedTime)} · not yet added to calendar`, read: false, time: idea.suggestedTime });
+    }
+
+    if (invitees.length > 0 && acceptedBy.length < invitees.length) {
+      result.push({
+        id: `pending-${idea.id}`,
+        type: "pending",
+        icon: "↗",
+        text: `${idea.title} is waiting on ${invitees.length - acceptedBy.length} RSVP${invitees.length - acceptedBy.length === 1 ? "" : "s"}`,
+        sub: acceptedBy.length > 0 ? `${acceptedBy.join(", ")} already in` : "share link ready",
+        read: false,
+        time: idea.updatedAt,
+      });
+    }
+
+    if (acceptedBy.length > 0) {
+      result.push({
+        id: `accepted-${idea.id}`,
+        type: "confirmed",
+        icon: "✓",
+        text: `${acceptedBy.join(", ")} accepted ${idea.title}`,
+        sub: formatSlotLabel(idea.suggestedTime),
+        read: false,
+        time: idea.updatedAt,
+      });
     }
   }
   return result.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
@@ -161,7 +191,16 @@ export default function Dashboard() {
         const slotRes = await fetch("/api/calendar/suggest-slots", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ duration: estimatedMinutes, preference: llmPreference, friendEmails: [], excludeIdeaId: id, openingPeriods, yelpSupportsReservations, yelpReservationUrl, covers }),
+          body: JSON.stringify({
+            duration: estimatedMinutes,
+            preference: llmPreference,
+            friendEmails: invitees.map((name) => `${name.toLowerCase()}@roam.local`),
+            excludeIdeaId: id,
+            openingPeriods,
+            yelpSupportsReservations,
+            yelpReservationUrl,
+            covers,
+          }),
         });
         const slotData = slotRes.ok ? await slotRes.json() : null;
         const slots = slotData?.slots || [];
@@ -194,9 +233,35 @@ export default function Dashboard() {
         setIdeas((prev) => prev.map((i) => (i.id === id ? updated : i)));
       }
 
+      // Auto-add to Google Calendar
+      if (suggestedTime) {
+        try {
+          const calRes = await fetch("/api/calendar/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ideaId: id,
+              title,
+              startTime: suggestedTime,
+              durationMinutes: estimatedMinutes,
+              location: placeAddress || placeName,
+              notes: "",
+            }),
+          });
+          if (calRes.ok) {
+            const calData = await calRes.json();
+            setIdeas((prev) =>
+              prev.map((i) =>
+                i.id === id ? { ...i, calendarEventId: calData.eventId } : i
+              )
+            );
+          }
+        } catch { }
+      }
+
       if (invitees.length > 0) {
         setInviteToast(`📨 Invites sent to ${invitees.join(", ")}`);
-        setTimeout(() => setInviteToast(null), 4000);
+        setTimeout(() => setInviteToast(null), 7000);
       }
     } catch { } finally {
       setEnrichingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
@@ -445,7 +510,7 @@ export default function Dashboard() {
                 if (e.key === "Escape") { setMentionDropdown([]); setMentionQuery(""); }
               }}
               placeholder="what do you want to do?"
-              style={{ width: "100%", borderRadius: 13, border: "1px solid rgba(171,161,198,0.25)", background: "rgba(255,255,255,0.96)", padding: input ? "13px 80px 13px 18px" : "13px 18px", fontFamily: "'Lora', serif", fontStyle: "italic", fontSize: 14, color: "#1E1A2E", outline: "none", boxShadow: "0 2px 18px rgba(74,64,112,0.07)", boxSizing: "border-box" }}
+              style={{ width: "100%", borderRadius: 13, border: "1px solid rgba(171,161,198,0.25)", background: "rgba(255,255,255,0.96)", padding: input ? "13px 80px 13px 18px" : "13px 18px", fontFamily: "'Lora', serif", fontStyle: "italic", fontSize: 17, color: "#1E1A2E", outline: "none", boxShadow: "0 2px 18px rgba(74,64,112,0.07)", boxSizing: "border-box" }}
               onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(123,111,168,0.4)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(74,64,112,0.12)"; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(171,161,198,0.25)"; e.currentTarget.style.boxShadow = "0 2px 18px rgba(74,64,112,0.07)"; }}
             />
@@ -464,8 +529,8 @@ export default function Dashboard() {
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, background: "none", border: "none", cursor: "pointer", position: "relative" }}>
               {isActive && <div style={{ position: "absolute", top: 6, width: 4, height: 4, borderRadius: "50%", background: "#7B6FA8" }} />}
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, lineHeight: 1, color: isActive ? "#7B6FA8" : "#ABA1C6" }}>{tab.symbol}</span>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "1px", textTransform: "uppercase", color: isActive ? "#7B6FA8" : "#C9C5E8" }}>{tab.label}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, lineHeight: 1, color: isActive ? "#7B6FA8" : "#ABA1C6" }}>{tab.symbol}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "1px", textTransform: "uppercase", color: isActive ? "#7B6FA8" : "#C9C5E8" }}>{tab.label}</span>
               {tab.id === "inbox" && unreadCount > 0 && (
                 <div style={{ position: "absolute", top: 8, right: "calc(50% - 14px)", width: 7, height: 7, borderRadius: "50%", background: "#F2B8CB", border: "1.5px solid rgba(245,243,250,0.95)" }} />
               )}

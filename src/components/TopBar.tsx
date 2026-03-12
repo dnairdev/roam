@@ -46,7 +46,7 @@ export default function TopBar({ userName, userImage, notificationCount = 0, onN
           style={{
             fontFamily: "'DM Serif Display', serif",
             fontStyle: "italic",
-            fontSize: 24,
+            fontSize: 30,
             lineHeight: 1,
             color: "#1E1A2E",
           }}
@@ -56,7 +56,7 @@ export default function TopBar({ userName, userImage, notificationCount = 0, onN
         <span
           style={{
             fontFamily: "'DM Mono', monospace",
-            fontSize: 7,
+            fontSize: 10,
             letterSpacing: "1.5px",
             textTransform: "uppercase",
             background: "#DFDDF2",
@@ -73,7 +73,7 @@ export default function TopBar({ userName, userImage, notificationCount = 0, onN
       <span
         style={{
           fontFamily: "'DM Mono', monospace",
-          fontSize: 10,
+          fontSize: 13,
           color: "#ABA1C6",
           letterSpacing: "0.5px",
           position: "absolute",
