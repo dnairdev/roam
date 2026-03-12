@@ -104,6 +104,7 @@ model Idea {
   covers           Int      @default(2)
   rating           Int      @default(0)
   calendarEventId  String   @default("")
+  openingHours     String   @default("[]")
   invitees         String   @default("[]")
   acceptedBy       String   @default("[]")
   taskNotes        String   @default("")

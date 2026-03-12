@@ -18,7 +18,9 @@ interface Idea {
   covers: number;
   rating: number;
   calendarEventId: string;
+  openingHours: string;
   invitees: string;
+  acceptedBy: string;
   taskNotes: string;
   createdAt: string;
 }

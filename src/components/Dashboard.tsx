@@ -129,7 +129,6 @@ export default function Dashboard() {
   const [mapView, setMapView] = useState(false);
   const [inviteToast, setInviteToast] = useState<string | null>(null);
   const [mentionDropdown, setMentionDropdown] = useState<string[]>([]);
-  const [mentionQuery, setMentionQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -223,6 +222,7 @@ export default function Dashboard() {
           category,
           lat,
           lng,
+          openingHours: JSON.stringify(openingPeriods),
           invitees: JSON.stringify(invitees),
           taskNotes: taskAssignments || "",
           planType,
@@ -273,7 +273,7 @@ export default function Dashboard() {
     if (!title) return;
     setInput("");
     setMentionDropdown([]);
-    setMentionQuery("");
+    
     try {
       const res = await fetch("/api/ideas", {
         method: "POST",
@@ -313,14 +313,14 @@ export default function Dashboard() {
     const lastWord = words[words.length - 1];
     if (lastWord.startsWith("@")) {
       const query = lastWord.slice(1).toLowerCase();
-      setMentionQuery(lastWord);
+      
       const filtered = DEMO_CONTACTS.filter(
         (c) => c.toLowerCase().startsWith(query) && !val.includes(`@${c} `) && !val.endsWith(`@${c}`)
       );
       setMentionDropdown(filtered);
     } else {
       setMentionDropdown([]);
-      setMentionQuery("");
+      
     }
   }
 
@@ -330,7 +330,7 @@ export default function Dashboard() {
     words[words.length - 1] = `@${name}`;
     setInput(words.join(" ") + " ");
     setMentionDropdown([]);
-    setMentionQuery("");
+    
     inputRef.current?.focus();
   }
 
@@ -507,7 +507,7 @@ export default function Dashboard() {
               onChange={handleInputChange}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && mentionDropdown.length === 0) createIdea();
-                if (e.key === "Escape") { setMentionDropdown([]); setMentionQuery(""); }
+                if (e.key === "Escape") { setMentionDropdown([]);  }
               }}
               placeholder="what do you want to do?"
               style={{ width: "100%", borderRadius: 13, border: "1px solid rgba(171,161,198,0.25)", background: "rgba(255,255,255,0.96)", padding: input ? "13px 80px 13px 18px" : "13px 18px", fontFamily: "'Lora', serif", fontStyle: "italic", fontSize: 17, color: "#1E1A2E", outline: "none", boxShadow: "0 2px 18px rgba(74,64,112,0.07)", boxSizing: "border-box" }}

@@ -3,6 +3,61 @@
 import { useState } from "react";
 import { formatDuration } from "@/lib/duration";
 
+interface OpeningPeriod {
+  openDay: number; openHour: number; openMinute: number;
+  closeDay: number; closeHour: number; closeMinute: number;
+}
+
+function fmt12(h: number, m: number) {
+  const ampm = h < 12 ? "am" : "pm";
+  const hour = h % 12 || 12;
+  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, "0")}${ampm}`;
+}
+
+function getOpenStatus(openingHoursJson: string): { isOpen: boolean; label: string } | null {
+  let periods: OpeningPeriod[] = [];
+  try { periods = JSON.parse(openingHoursJson || "[]"); } catch { return null; }
+  if (periods.length === 0) return null;
+
+  const now = new Date();
+  const day = now.getDay();
+  const mins = now.getHours() * 60 + now.getMinutes();
+
+  // Check if currently open
+  for (const p of periods) {
+    const openMin = p.openDay * 1440 + p.openHour * 60 + p.openMinute;
+    const closeMin = p.closeDay * 1440 + p.closeHour * 60 + p.closeMinute;
+    const nowMin = day * 1440 + mins;
+    if (nowMin >= openMin && nowMin < closeMin) {
+      const closesSoon = closeMin - nowMin <= 60;
+      return {
+        isOpen: true,
+        label: closesSoon
+          ? `closes soon · ${fmt12(p.closeHour, p.closeMinute)}`
+          : `open until ${fmt12(p.closeHour, p.closeMinute)}`,
+      };
+    }
+  }
+
+  // Find next opening
+  const nowAbsolute = day * 1440 + mins;
+  let next: OpeningPeriod | null = null;
+  let nextMin = Infinity;
+  for (const p of periods) {
+    let openAbsolute = p.openDay * 1440 + p.openHour * 60 + p.openMinute;
+    if (openAbsolute <= nowAbsolute) openAbsolute += 7 * 1440; // next week
+    if (openAbsolute < nextMin) { nextMin = openAbsolute; next = p; }
+  }
+
+  if (!next) return { isOpen: false, label: "closed" };
+  const daysUntil = Math.floor((nextMin - nowAbsolute) / 1440);
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const whenStr = daysUntil === 0 ? `today ${fmt12(next.openHour, next.openMinute)}`
+    : daysUntil === 1 ? `tomorrow ${fmt12(next.openHour, next.openMinute)}`
+    : `${dayNames[next.openDay]} ${fmt12(next.openHour, next.openMinute)}`;
+  return { isOpen: false, label: `closed · opens ${whenStr}` };
+}
+
 interface Idea {
   id: string;
   title: string;
@@ -17,7 +72,9 @@ interface Idea {
   savedLink: string;
   covers: number;
   calendarEventId: string;
+  openingHours: string;
   invitees: string;
+  acceptedBy: string;
   taskNotes: string;
 }
 
@@ -119,7 +176,7 @@ export default function IdeaCard({ idea, onDelete, onUpdate, enriching }: Props)
     const url = `${window.location.origin}/share/${idea.id}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      setTimeout(() => setCopied(false), 4500);
     });
   }
 
@@ -479,6 +536,24 @@ export default function IdeaCard({ idea, onDelete, onUpdate, enriching }: Props)
               </a>
             </div>
           )}
+
+          {/* Open status */}
+          {(() => {
+            const status = getOpenStatus(idea.openingHours || "[]");
+            if (!status) return null;
+            const isClosingSoon = status.label.startsWith("closes soon");
+            const color = status.isOpen ? (isClosingSoon ? "#E8A838" : c.greenDeep) : c.textMuted;
+            const bg = status.isOpen ? (isClosingSoon ? "rgba(232,168,56,0.1)" : "rgba(212,237,218,0.5)") : "rgba(223,221,242,0.4)";
+            const border = status.isOpen ? (isClosingSoon ? "1px solid rgba(232,168,56,0.25)" : "1px solid rgba(74,158,84,0.2)") : "1px solid rgba(171,161,198,0.2)";
+            return (
+              <div style={{ marginBottom: 14 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, border, borderRadius: 20, padding: "4px 10px" }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color }}>{status.label}</span>
+                </span>
+              </div>
+            );
+          })()}
 
           {/* Duration */}
           <div style={{ marginBottom: 14 }}>
@@ -852,7 +927,9 @@ export default function IdeaCard({ idea, onDelete, onUpdate, enriching }: Props)
           {/* Invitees */}
           {(() => {
             let inviteeList: string[] = [];
+            let acceptedList: string[] = [];
             try { inviteeList = JSON.parse(idea.invitees || "[]"); } catch { inviteeList = []; }
+            try { acceptedList = JSON.parse(idea.acceptedBy || "[]"); } catch { acceptedList = []; }
             if (inviteeList.length === 0) return null;
             return (
               <div style={{ marginBottom: 14 }}>
@@ -860,15 +937,18 @@ export default function IdeaCard({ idea, onDelete, onUpdate, enriching }: Props)
                   Invited
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {inviteeList.map((name) => (
-                    <div key={name} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(223,221,242,0.5)", border: "1px solid rgba(171,161,198,0.2)", borderRadius: 20, padding: "5px 10px 5px 6px" }}>
-                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg, #7B6FA8, #4A4070)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#fff", fontWeight: 600 }}>{name[0]}</span>
+                  {inviteeList.map((name) => {
+                    const accepted = acceptedList.some((person) => person.toLowerCase() === name.toLowerCase());
+                    return (
+                      <div key={name} style={{ display: "flex", alignItems: "center", gap: 6, background: accepted ? "rgba(212,237,218,0.6)" : "rgba(223,221,242,0.5)", border: accepted ? "1px solid rgba(74,158,84,0.22)" : "1px solid rgba(171,161,198,0.2)", borderRadius: 20, padding: "5px 10px 5px 6px" }}>
+                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg, #7B6FA8, #4A4070)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#fff", fontWeight: 600 }}>{name[0]}</span>
+                        </div>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: c.textMid }}>{name}</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: accepted ? c.greenDeep : c.textMuted, letterSpacing: "0.5px" }}>{accepted ? "accepted" : "pending"}</span>
                       </div>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: c.textMid }}>{name}</span>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: c.textMuted, letterSpacing: "0.5px" }}>pending</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {idea.taskNotes && (
                   <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(223,221,242,0.35)", borderRadius: 9, border: "1px solid rgba(171,161,198,0.15)" }}>

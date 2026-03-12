@@ -51,7 +51,9 @@ export async function PUT(
       ...(body.covers !== undefined && { covers: body.covers }),
       ...(body.calendarEventId !== undefined && { calendarEventId: body.calendarEventId }),
       ...(body.rating !== undefined && { rating: body.rating }),
+      ...(body.openingHours !== undefined && { openingHours: body.openingHours }),
       ...(body.invitees !== undefined && { invitees: body.invitees }),
+      ...(body.acceptedBy !== undefined && { acceptedBy: body.acceptedBy }),
       ...(body.taskNotes !== undefined && { taskNotes: body.taskNotes }),
     },
   });
