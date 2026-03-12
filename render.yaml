@@ -6,7 +6,7 @@ databases:
 
 services:
   - type: web
-    name: roam-ai
+    name: roam-ai-app
     plan: free
     runtime: node
     buildCommand: npm install && npm run build
