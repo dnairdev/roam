@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
         select: {
           title: true,
           placeName: true,
+          placeAddress: true,
           invitees: true,
         },
       })
@@ -50,6 +51,9 @@ export async function POST(req: NextRequest) {
     invitees: Array.isArray(invitees) ? invitees : [],
   });
 
+  // Always use the stored place data for location — fall back to request body
+  const resolvedLocation = idea?.placeAddress || idea?.placeName || location;
+
   if (!startTime || !eventTitle) {
     return NextResponse.json(
       { error: "Missing title or startTime" },
@@ -61,7 +65,7 @@ export async function POST(req: NextRequest) {
     title: eventTitle,
     startTime,
     durationMinutes,
-    location,
+    location: resolvedLocation,
     notes: notes
       ? `${notes}\n\nScheduled via Roam`
       : "Scheduled via Roam",
@@ -102,7 +106,7 @@ export async function POST(req: NextRequest) {
       calendarId: "primary",
       requestBody: {
         summary: eventTitle,
-        location: location || undefined,
+        location: resolvedLocation || undefined,
         description: notes
           ? `${notes}\n\nScheduled via Roam`
           : "Scheduled via Roam",
