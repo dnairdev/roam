@@ -180,18 +180,7 @@ export default function Dashboard() {
       const currentIdea = ideas.find((i) => i.id === id);
       const covers = currentIdea?.covers ?? 2;
 
-      // Override preference based on category — more reliable than LLM alone
-      const CATEGORY_PREFERENCE: Record<string, string> = {
-        "nightlife":    "evening",   // bars, clubs → evening
-        "food-drink":   "evening",   // restaurants default to dinner; Claude may override to afternoon for lunch/brunch
-        "arts-culture": "afternoon", // museums, galleries → daytime
-        "outdoors":     "morning",   // parks, hikes → morning
-        "fitness":      "morning",   // gym, yoga → morning
-        "entertainment":"afternoon", // movies, bowling → afternoon
-        "shopping":     "afternoon", // markets, stores → afternoon
-        "learning":     "afternoon", // classes, workshops → afternoon
-      };
-      const preference = CATEGORY_PREFERENCE[category] || llmPreference || "any";
+      const preference = llmPreference || "any";
 
       let suggestedTime = "";
       let suggestedTimes = "[]";
